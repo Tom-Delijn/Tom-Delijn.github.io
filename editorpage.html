@@ -1,1 +1,1763 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Map OpenLayers</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.2/awesomplete.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/awesomplete/1.1.2/awesomplete.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.4/xlsx.full.min.js"></script> <!-- Include SheetJS library -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            left: 300px;
+            bottom: 30px;
+            width: calc(100% - 300px);
+        }
+
+
+        #logoAndEditorContainer {
+            display: flex; /* Use flexbox to align items horizontally */
+            align-items: center; /* Center items vertically */
+            margin-bottom: 10px; /* Add margin at the bottom */
+        }
+
+        #logoContainer,
+        #editorLoginContainer {
+            margin-right: 10px; /* Add margin between the logo and login button */
+        }
+
+
+        #editorLoginButton {
+            padding: 5px; /* Adjust padding */
+            font-size: 12px; /* Adjust font size */
+            height: 40px; /* Set the height to match the logo */
+            width: 100px;
+            background-color: #007bff; /* Blue button color */
+            color: white; /* White text color */
+            border: none; /* Remove border */
+            cursor: pointer; /* Add pointer cursor */
+            margin-left: 50px;
+        }
+
+        #controls {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: calc(100% - 40px);
+            width: 300px;
+            background-color: #f8f9fa; /* Light gray background */
+            padding: 10px;
+            box-sizing: border-box;
+            text-align: left; /* Align text to the left */
+        }
+
+        .pointer {
+            position: absolute;
+            top: -22px;
+            left: -9px;
+            font-size: 24px;
+            color: blue;
+            z-index: 1000;
+         }
+
+        .legend {
+            position: absolute;
+            bottom: 40px;
+            left: 310px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+
+        .popup {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 2000;
+            bottom: 35px;
+            right: 10px;
+            width: 200px;
+            height: 300px;
+            overflow: scroll;
+            max-height: 300px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+
+        .control-box {
+            margin-bottom: 10px;
+        }
+
+        .control-box label {
+            display: block; /* Each label on a new line */
+            margin-bottom: 5px; /* Add space between labels */
+            font-weight: bold; /* Make label text bold */
+        }
+
+        .control-box input[type="text"],
+        .control-box input[type="range"],
+        .control-box button {
+            width: 100%; /* Take up full width */
+            padding: 5px; /* Add padding */
+            box-sizing: border-box; /* Include padding in width */
+        }
+
+        .control-box button {
+            background-color: #007bff; /* Blue button color */
+            color: white; /* White text color */
+            border: none; /* Remove border */
+            cursor: pointer; /* Add pointer cursor */
+        }
+
+        .control-box button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+        /* logbook styles */
+        .logbook {
+            display: none; /* Hide the logbook by default */
+            position: fixed; /* Position the logbook */
+            z-index: 1000; /* Set a high z-index to ensure it's above other elements */
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Black background with transparency */
+        }
+
+        /* logbook content */
+        .logbook-content {
+            background-color: #fefefe;
+            margin: 15% auto; /* Center logbook vertically and horizontally */
+            padding: 20px;
+            border: 1px solid #888;
+            border-radius: 5px;
+            max-width: 600px; /* Set maximum width of the logbook */
+        }
+
+        /* Close button */
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #logButtonContainer {
+            position: absolute;
+            top: 10px; /* Adjust as needed */
+            right: 10px; /* Adjust as needed */
+            z-index: 1000; /* Ensure it's above other elements */
+        }
+
+        #logButton {
+            width: 100px; /* Adjust width as needed */
+            padding: 8px; /* Adjust padding as needed */
+            background-color: #007bff; /* Blue button color */
+            color: white; /* White text color */
+            border: none; /* Remove border */
+            cursor: pointer; /* Add pointer cursor */
+            border-radius: 5px; /* Rounded corners */
+            font-size: 16px; /* Adjust font size as needed */
+        }
+
+        #logButton:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+         #loglogbook .logbook-content input[type="date"] {
+            margin-bottom: 20px; /* Adjust the value as needed */
+         }
+
+         #loglogbook .logbook-content table {
+            width: 100%;
+         }
+
+        .control-box {
+            margin-bottom: 10px;
+        }
+
+        .control-box label {
+            display: block; /* Each label on a new line */
+            margin-bottom: 5px; /* Add space between labels */
+            font-weight: bold; /* Make label text bold */
+        }
+
+        .control-box input[type="text"],
+        .control-box input[type="range"],
+        .control-box button {
+            width: 100%; /* Take up full width */
+            padding: 5px; /* Add padding */
+            box-sizing: border-box; /* Include padding in width */
+        }
+
+        .control-box button {
+            background-color: #007bff; /* Blue button color */
+            color: white; /* White text color */
+            border: none; /* Remove border */
+            cursor: pointer; /* Add pointer cursor */
+        }
+
+        .control-box button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+        /* Styles for buttons inside loglogbook */
+        #loglogbook .logbook-content button {
+            width: auto;
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+
+        #loglogbook .logbook-content button:hover {
+            background-color: #0056b3;
+        }
+
+        #loglogbook .logbook-content .close:hover,
+        #loglogbook .logbook-content .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Style for page navigation buttons */
+        .pagination button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            padding: 8px 16px;
+            margin: 0 5px;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .pagination button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Style for current page navigation button */
+        .pagination button.current-page {
+            background-color: #0056b3; /* Use the same color as hover effect */
+            color: white; /* Make text color white for better visibility */
+            font-weight: bold;
+        }
+
+        .pagination button.active {
+            background-color: #0056b3 !important;
+            border: 1px solid #007bff !important;
+        }
+
+        /* Style for disabled page navigation buttons */
+        .pagination button.disabled {
+            background-color: #ddd;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .export-button {
+            padding: 5px; /* Adjust padding */
+            font-size: 12px; /* Adjust font size */
+            height: 40px; /* Set the height to match the other buttons */
+            width: 100px; /* Set the width */
+            background-color: #007bff; /* Blue button color */
+            color: white; /* White text color */
+            border: none; /* Remove border */
+            cursor: pointer; /* Add pointer cursor */
+            margin-left: 0px; /* Adjust margin */
+            border-radius: 5px; /* Add border radius */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add shadow */
+        }
+
+        .export-button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+
+        #controls {
+            position: fixed; /* or absolute */
+            top: 0;
+            left: 0;
+            height: 100%; /* Adjust as needed */
+            width: 300px; /* Adjust as needed */
+            background-color: #f8f9fa;
+            overflow-y: auto; /* Enable vertical scrolling */
+            padding: 10px;
+            box-sizing: border-box;
+            z-index: 1000; /* Ensure it's above other content */
+        }
+
+        /* CSS for message elements */
+        .message {
+            margin-top: 5px; /* Add some space between the input and message */
+        }
+
+        .success {
+            color: green; /* Green text for success messages */
+        }
+
+        .error {
+            color: red; /* Red text for error messages */
+        }
+
+
+    </style>
+</head>
+<body>
+
+<div id="logButtonContainer">
+    <button id="logButton" onclick="openLoglogbook()">Log</button>
+</div>
+
+<!-- logbook -->
+<div id="loglogbook" class="logbook">
+    <div class="logbook-content">
+        <span class="close" onclick="closeLoglogbook()">&times;</span>
+        <h2>Log Data</h2>
+        <label for="startDate">Start Date:</label>
+        <input type="date" id="startDate">
+        <label for="endDate">End Date:</label>
+        <input type="date" id="endDate">
+        <table id="logTable" border = "1">
+            <thead>
+                <tr>
+                    <th>Switch</th>
+                    <th>New State</th>
+                    <th>User</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>S812</td>
+                    <td>Open</td>
+                    <td>EX1058</td>
+                    <td>17/04/2024</td>
+                </tr>
+                <tr>
+                    <td>S813</td>
+                    <td>Open</td>
+                    <td>Ex1058</td>
+                    <td>13/04/2024</td>
+                </tr>
+                <tr>
+                    <td>S715</td>
+                    <td>Closed</td>
+                    <td>EX1057</td>
+                    <td>07/04/2024</td>
+                </tr>
+                <tr>
+                    <td>S716</td>
+                    <td>Open</td>
+                    <td>EX1093</td>
+                    <td>30/03/2024</td>
+                </tr>
+                <tr>
+                    <td>S723</td>
+                    <td>Closed</td>
+                    <td>EX1102</td>
+                    <td>22/03/2024</td>
+                </tr>
+                <tr>
+                    <td>S596</td>
+                    <td>Closed</td>
+                    <td>EX1058</td>
+                    <td>18/03/2024</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="controls">
+    <div class="control-box" id="logoAndEditorContainer">
+        <div id="logoContainer">
+            <img src="https://github.com/XanderPeeters/Schakelboekje/blob/master/De_Lijn.svg.png?raw=true" alt="De Lijn logo" width="75" height="auto" onclick="reloadPage()">
+        </div>
+        <div id="editorLoginContainer">
+            <button id="editorLoginButton" onclick="openEditorLoginPage()">User page</button>
+        </div>
+    </div>
+    <div class="control-box">
+        <label for="visible_map">Kaart:</label>
+        <input id="visible_map" class="visible" type="checkbox" checked/>
+    </div>
+    <div class="control-box">
+        <label for="visibleGrey">Grijze achtergrond:</label>
+        <input id="visibleGrey" type="checkbox"/>
+    </div>
+    <div class="control-box">
+        <label for="metroSwitch">Metro schakelaars:</label>
+        <input id="metroSwitch" class="switch" type="checkbox" checked/>
+    </div>
+    <div class="control-box">
+        <label for="bovengrondsSwitch">Bovengronds schakelaars:</label>
+        <input id="bovengrondsSwitch" class="switch" type="checkbox" checked/>
+    </div>
+    <div class="control-box">
+        <label for="voedingenMetro">Metro Voedingen:</label>
+        <input id="voedingenMetro" class="switch" type="checkbox" checked/>
+    </div>
+    <div class="control-box">
+        <label for="voedingenBovengronds">Bovengronds Voedingen:</label>
+        <input id="voedingenBovengronds" class="switch" type="checkbox" checked/>
+    </div>
+    <div class="control-box">
+        <label for="searchInput">Zoek op adres, voeding of schakelaar:</label>
+        <input id="searchInput" type="text" class="awesomplete" data-list="#addressList" />
+        <datalist id="addressList"></datalist>
+    </div>
+    <div class="control-box">
+        <button onclick="searchLayerFeatureOrAddress()">Zoeken</button>
+        <div id="errorMessage" style="color: red; margin-top: 5px;"></div>
+    </div>
+    <div class="control-box">
+        <button id="draw_Button" onclick="toggleDrawing()">Teken</button>
+    </div>
+    <br>
+    <div>
+        <div class="control-box">
+            <label for="switchNumber">Verander status van schakelaar:</label>
+            <input type="text" id="switchNumber" name="switchNumber">
+        </div>
+        <div class="control-box">
+            <label for="newState">Nieuwe status:</label>
+            <select id="newState" name="newState">
+                <option value="closed">Open</option>
+                <option value="open">Closed</option>
+            </select>
+        </div>
+        <div class="control-box">
+            <button id="switchStateButton">Verander status</button>
+        </div>
+    </div>
+    
+</div>
+<div id="map"></div>
+<div id="popup" class="popup" style="display: none;"></div>
+<div class="legend">
+    <label>Legende:</label>
+    <div>
+        <i class="fas fa-dot-circle" style="color: red;"></i> <span style="color: red;">Gesloten</span><br>
+        <i class="fas fa-dot-circle" style="color: green;"></i> <span style="color: green;">Open</span>
+    </div>
+</div>
+
+<script>
+    let map;
+    let draw;
+
+    function openEditorLoginPage() {
+        window.location.href = "index.html"; // Redirect to the user page again
+    }
+
+    // Load JSON file from server
+    async function loadJSONFile() {
+        try {
+            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
+            if (!response.ok) {
+                throw new Error('Failed to fetch JSON file');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Error loading JSON file:', error);
+            throw error;
+        }
+    }
+
+    // Function to find the items corresponding to a given V-number
+    async function find_switches(main_feeder) {
+        try {
+            // Load JSON file from server
+            const response = await fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/sectieschakelaars.json'); // Update the path as needed
+            if (!response.ok) {
+                throw new Error('Failed to fetch JSON file');
+            }
+            const jsonData = await response.json();
+
+            // Ensure jsonData is an array
+            if (!Array.isArray(jsonData)) {
+                throw new Error('Invalid JSON data format');
+            }
+
+            // Find the corresponding items for the given V-number
+            const switchesRow = jsonData.find(row => row['V-number'] === main_feeder);
+
+            // Return the items if found
+            return switchesRow ? switchesRow['Items'] : 'Not found';
+        } catch (error) {
+            console.error('Error reading JSON file:', error);
+            throw error;
+        }
+    }
+
+    const center = ol.proj.fromLonLat([4.4024643, 51.2194475]);
+    const extentSize = 25000; // Size of the extent in meters (10 km = 10000 meters)
+    const extent = ol.extent.buffer(center.concat(center), extentSize);
+
+    const view = new ol.View({
+        center: center,
+        zoom: 13,
+        extent: extent // Set the extent
+    });
+
+    let pinClicked = false;
+    let drawingModeActive = false;
+    let drawnFeaturesSource = new ol.source.Vector(); // Source to hold drawn features
+    let drawnFeaturesLayer = new ol.layer.Vector({ // Layer to display drawn features
+        source: drawnFeaturesSource,
+    });
+
+    map = new ol.Map({
+        layers: [
+            new ol.layer.Tile({
+                source: new ol.source.TileJSON({
+                    url: 'https://api.maptiler.com/maps/basic-v2/tiles.json?key=VTEyqAvEoi2G2xhpCGmi',
+                    tileSize: 512,
+                })
+            })
+        ],
+        target: 'map',
+        view: view // Use the view with the custom extent
+    });
+
+    const pointerElement = document.createElement('i');
+    pointerElement.className = 'pointer fa-solid fa-location-dot';
+    const pointerOverlay = new ol.Overlay({
+        element: pointerElement,
+        positioning: 'center-center',
+        stopEvent: false
+    });
+    map.addOverlay(pointerOverlay);
+
+    function toggleDrawing() {
+        if (drawingModeActive) {
+            // Clear previously drawn features if exiting drawing mode
+            drawnFeaturesSource.clear();
+            map.removeInteraction(draw);
+            document.getElementById('draw_Button').style.backgroundColor = '';
+        } else {
+            // Clear previously drawn features if starting a new drawing
+            drawnFeaturesSource.clear();
+            document.getElementById('draw_Button').style.backgroundColor = 'green';
+            initDrawingInteraction();
+
+        }
+        drawingModeActive = !drawingModeActive;
+    }
+
+    function initDrawingInteraction() {
+        if (!drawnFeaturesSource || !feeder_layer || !map) {
+            console.error('Missing required sources or map.');
+            return;
+        }
+
+        draw = new ol.interaction.Draw({
+            source: drawnFeaturesSource,
+            type: 'Polygon',
+        });
+        map.addInteraction(draw);
+
+        draw.on('drawend', async function(event) {
+            // Clear previous polygon
+            drawnFeaturesSource.clear();
+
+
+            // Lock the current polygon
+            const polygonFeature = event.feature;
+            const polygonGeometry = polygonFeature.getGeometry();
+
+            polygonFeature.setStyle(new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: 'blue',
+                    width: 2,
+                }),
+                fill: new ol.style.Fill({
+                    color: 'rgba(0, 0, 255, 0.2)',
+                }),
+            }));
+
+            // Add the drawn feature to the permanent layer
+            drawnFeaturesSource.addFeature(polygonFeature);
+
+            // Perform spatial query against features in Layer 2
+            const intersectingFeatures = new Set();
+            const polygonExtent = polygonGeometry.getExtent();
+
+            const features = feeder_layer.getSource().getFeatures();
+            await Promise.all(features.map(async (feature) => {
+                const featureGeometry = feature.getGeometry();
+                const featureExtent = featureGeometry.getExtent();
+                if (ol.extent.intersects(polygonExtent, featureExtent)) {
+                    const layerName = feature.get('LAYER');
+                    const main_feeder = layerName;
+                    const switches = await find_switches(main_feeder);
+                    const edgeFeedersSet = findEdgeFeeders(main_feeder); // Call the function to find edge feeders
+                    const edgeFeeders = [...edgeFeedersSet]; // Convert Set to Array for easier handling
+                    let layerData = { layerName: layerName, edgeFeeders: edgeFeeders, Switches: switches };
+                    let isNewLayer = true;
+                    for (let data of intersectingFeatures) {
+                        if (data.layerName === layerName) {
+                            isNewLayer = false;
+                            break;
+                        }
+                    }
+                    if (isNewLayer) {
+                        intersectingFeatures.add(layerData);
+                    }
+                }
+            }));
+
+            // Display popup with information about intersecting features
+            handlePinClick();
+            const popupElement = document.querySelector('.popup');
+            if (intersectingFeatures.size > 0) {
+                const popupContent = Array.from(intersectingFeatures).map(function(data) {
+                    const feederName = data.layerName;
+                    const edgeFeeders = data.edgeFeeders;
+                    const switches = data.Switches
+                    // Populate the tsFeederMap object with main and edge feeder names
+                     const tsFeederMap = populateTSFeederMap([feederName, ...edgeFeeders]);
+
+                    // Generate the "Feeders to turn off" section content
+                    let feedersToTurnOffContent = '<p>Feeders to turn off:</p>';
+                    for (const tsNumber in tsFeederMap) {
+                        const feederList = tsFeederMap[tsNumber].join(', ');
+                        // Include a message for "N/A" TS numbers
+                        const tsNumberDisplay = tsNumber !== 'N/A' ? `TS ${tsNumber}` : 'No corresponding TS-number';
+                        feedersToTurnOffContent += `<p>${tsNumberDisplay}: ${feederList}</p>`;
+                    }
+
+                    return `<h4 style="margin-top: 0;">Location information:</h4><p>Main feeder: ${feederName}</p><p>Edge feeders: ${edgeFeeders}</p><p>Switches: ${switches}</p> ${feedersToTurnOffContent}`;
+                }).join('<hr>'); // Separate feature information with horizontal line
+                popupElement.innerHTML = popupContent;
+                // Add the export button separately outside of the mapping function
+                popupElement.innerHTML += '<button id="exportButton" class="export-button">Export schakelnota</button>';
+
+            } else {
+                // If no intersecting features, display a message
+                popupElement.style.display = 'none';
+            }
+
+            // Clear the drawing interaction (but keep it active)
+            draw.finishDrawing();
+        });
+    }
+
+
+    // Function to display a popup with location information
+    async function displayPopup(coordinates, feature, layer) {
+        handlePinClick();
+        const popupElement = document.querySelector('.popup');
+        const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326');
+
+        if (feature) {
+            const closestFeatureName = feature.get('LAYER');
+            if (layer === 'feeder_layer') {
+                const main_feeder = closestFeatureName;
+                const switches = await find_switches(main_feeder);
+                const edgeFeedersSet = findEdgeFeeders(main_feeder);
+                const edgeFeeders = [...edgeFeedersSet];
+                const tsFeederMap = populateTSFeederMap([closestFeatureName, ...edgeFeeders]);
+
+                let feedersToTurnOffContent = '<p>Feeders to turn off:</p>';
+                for (const tsNumber in tsFeederMap) {
+                    const feederList = tsFeederMap[tsNumber].join(', ');
+                    const tsNumberDisplay = tsNumber !== 'N/A' ? `TS ${tsNumber}` : 'No corresponding TS-number';
+                    feedersToTurnOffContent += `<p>${tsNumberDisplay}: ${feederList}</p>`;
+                }
+
+                const content = `<h4 style="margin-top: 0;">Location information:</h4>
+                                <p>Main feeder: ${closestFeatureName}</p>
+                                <p>Edge feeders: ${edgeFeeders}</p>
+                                <p>Switches: ${switches}</p>
+                                ${feedersToTurnOffContent}
+                                <button id="exportButton" class="export-button">Export schakelnota</button>`;
+                popupElement.innerHTML = content;
+
+            // if we are working in the switches_layer, find the closest feeder and start from there to fill the popup
+            } else if (layer === 'switches_layer') {
+                // Find the closest main feeder to the input coordinates
+                let closestMainFeeder = null;
+                let closestDistance = Infinity;
+
+                feeder_layer.getSource().forEachFeature(feederFeature => {
+                    const feederName = feederFeature.get('LAYER');
+                    const feederCoords = feederFeature.getGeometry().getClosestPoint(coordinates);
+                    const distance = ol.sphere.getDistance(transfcoordinates, ol.proj.transform(feederCoords, 'EPSG:3857', 'EPSG:4326'));
+                    
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestMainFeeder = feederName;
+                    }
+                });
+                // Display information for the closest main feeder found
+                if (closestMainFeeder) {
+                    const switches = await find_switches(closestMainFeeder);
+                    const edgeFeedersSet = findEdgeFeeders(closestMainFeeder);
+                    const edgeFeeders = [...edgeFeedersSet];
+                    const tsFeederMap = populateTSFeederMap([closestMainFeeder, ...edgeFeeders]);
+
+                    let feedersToTurnOffContent = '<p>Feeders to turn off:</p>';
+                    for (const tsNumber in tsFeederMap) {
+                        const feederList = tsFeederMap[tsNumber].join(', ');
+                        const tsNumberDisplay = tsNumber !== 'N/A' ? `TS ${tsNumber}` : 'No corresponding TS-number';
+                        feedersToTurnOffContent += `<p>${tsNumberDisplay}: ${feederList}</p>`;
+                    }
+
+                    const content = `<h4 style="margin-top: 0;">Location information:</h4>
+                                    <p>Main feeder: ${closestMainFeeder}</p>
+                                    <p>Edge feeders: ${edgeFeeders}</p>
+                                    <p>Switches: ${switches}</p>
+                                    ${feedersToTurnOffContent}
+                                    <button id="exportButton" class="export-button">Export schakelnota</button>`;
+                    popupElement.innerHTML = content;
+                } else {
+                    popupElement.innerHTML = '<p>No main feeder found nearby.</p>';
+                }
+            }
+        } else {
+            const lon = transfcoordinates[0];
+            const lat = transfcoordinates[1];
+            const content = `<p>Latitude: ${lat.toFixed(6)}</p><p>Longitude: ${lon.toFixed(6)}</p>`;
+            popupElement.innerHTML = content;
+        }
+
+        placePin(coordinates);
+    }
+
+
+    map.on('click', async function(event) {
+        if (drawingModeActive) {
+            //No functionality yet
+        } else {
+            handlePinClick();
+            const coordinates = event.coordinate;
+            const transfcoordinates = ol.proj.transform(coordinates, 'EPSG:3857', 'EPSG:4326');
+            let closestFeature = null;
+            let closestDistance = Infinity; // Initialize with infinity
+            feeder_layer.getSource().forEachFeature(function(feature) {
+                const featureCoordinates = feature.getGeometry().getClosestPoint(coordinates);
+                const featureCoords = ol.proj.transform(featureCoordinates, 'EPSG:3857', 'EPSG:4326');
+                const distance = ol.sphere.getDistance(transfcoordinates, featureCoords);
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestFeature = feature;
+                }
+            });
+
+            // Check if distance exceeds the threshold (for example, 500 meters)
+            if (closestDistance <= 500) {
+                console.log('Closest Feature:', closestFeature.get('LAYER'));
+                const closestFeatureName = closestFeature ? closestFeature.get('LAYER') : null;
+                await displayPopup(coordinates, closestFeature, 'feeder_layer');
+            } else {
+                popupElement.style.display = 'none'; // Hide the popup if distance exceeds threshold
+            }
+
+        }
+    });
+
+
+    //function to place pin
+    function placePin(pinCoordinates) {
+        pointerOverlay.setPosition(pinCoordinates);
+    }
+
+    // Function to handle the pin click event
+    function handlePinClick() {
+        pinClicked = true;
+        const popupElement = document.getElementById('popup');
+        if (pinClicked) {
+            popupElement.style.display = 'block';
+        } else {
+            popupElement.style.display = 'none';
+        }
+    }
+
+    //function to find the TS number for a given feeder name
+    function findTSNumber(feederName) {
+        // Loop through each feature in the GeoJSON data
+        for (const feature of Feeders_source.getFeatures()) {
+            // Check if the feature's 'LAYER' name matches the given feederName
+            if (feature.get('LAYER') === feederName) {
+                // Return the TS number of the matched feature
+                const tsNumber = feature.get('TS');
+                return tsNumber !== null ? tsNumber : 'N/A'; // Return "N/A" if TS number is null
+            }
+        }
+        // Return "N/A" if no matching feeder name is found
+        return 'N/A';
+    }
+
+
+    // Create an object to store TS numbers and associated feeder names
+    const tsFeederMap = {};
+
+    // Function to populate the tsFeederMap object
+    function populateTSFeederMap(feederNames) {
+        const tsFeederMap = {}; // Clear tsFeederMap object
+        feederNames.forEach(feederName => {
+            const tsNumber = findTSNumber(feederName);
+            if (tsNumber) {
+                if (!tsFeederMap[tsNumber]) {
+                    tsFeederMap[tsNumber] = [feederName];
+                } else {
+                    tsFeederMap[tsNumber].push(feederName);
+                }
+            }
+        });
+        return tsFeederMap; // Return the populated tsFeederMap object
+    }
+
+
+
+    // Add a click event listener to the pin element
+    pointerElement.addEventListener('click', function(event) {
+        // Prevent the singleclick event on the map from firing
+        event.stopPropagation();
+        handlePinClick();
+    });
+
+    map.on('dblclick', function(event) {
+        if (drawingModeActive) {
+            // Prevent map zoom on double-click during drawing mode
+            event.preventDefault();
+        }
+    });
+
+    map.getViewport().addEventListener('contextmenu', function(event) {
+        if (drawingModeActive) {
+            // Finish drawing on right-click
+            event.preventDefault();
+            draw.finishDrawing();
+
+        } else {
+           // Prevent the default context menu from appearing
+           event.preventDefault();
+           // Hide the pointer
+           placePin(undefined);
+           const popupElement = document.getElementById('popup');
+           popupElement.style.display = 'none';
+        }
+    });
+    map.addLayer(drawnFeaturesLayer);
+
+    // Object to store the colors for each layer
+    const layerColors = {};
+
+    // Load GeoJSON data for the first layer
+    const Switches_source = new ol.source.Vector({
+        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Switches_Complete2%20(2).geojson',
+        format: new ol.format.GeoJSON()
+    });
+
+    const switches_style = function(feature) {
+        const layerName = feature.get('LAYER'); // Get the name of the layer from the 'LAYER' property;
+        const plaats = feature.get('PLAATS'); // Get the 'PLAATS' attribute
+        const detail = feature.get('DETAIL1');
+        const state = feature.get('State');
+        let color = 'green'; // Set color to green by default
+
+        // Check if the state is "closed", then change the color to red
+        if (state === 'open') {
+            color = 'red';
+        }
+
+        // Calculate label visibility based on zoom level
+        const minZoomLevel = 17; // Adjust the minimum zoom level as needed
+        const visible = map.getView().getZoom() >= minZoomLevel;
+
+        // Create style for the feature
+        return new ol.style.Style({
+            image: new ol.style.Circle({
+                radius: 6,
+                fill: new ol.style.Fill({
+                    color: color // Use the color
+                }),
+                stroke: new ol.style.Stroke({
+                    color: color, // Use the color
+                    width: 2
+                })
+            }),
+            text: new ol.style.Text({
+                text: visible ? (map.getView().getZoom() >= 20 ? layerName + (plaats ? ' - ' + plaats : '') + (detail ? ' - ' + detail : '') : layerName) : '', // Show layer name from zoom level 15 and add 'PLAATS' from zoom level 20
+                font: 'bold 10px Calibri,sans-serif', // Adjust font size
+                offsetY: -12,
+                fill: new ol.style.Fill({ color: 'black' }), // Use the same color for the label
+                // Custom function to adjust label placement to avoid collisions
+                overflow: true, // Allow text to overflow the container if necessary
+                placement: 'point', // Place the text at a point on the feature
+                padding: [5, 5, 5, 5], // Padding around the text to avoid collision
+                textAlign: 'center', // Center-align the text
+                textBaseline: 'middle', // Align the text vertically at the center
+                stroke: new ol.style.Stroke({ // Stroke style for the text
+                    color: '#fff', // White color for the stroke
+                    width: 3 // Stroke width
+                })
+            })
+        });
+    };
+
+   document.addEventListener('DOMContentLoaded', function () {
+        const logTable = document.getElementById('logTable');
+        const rows = logTable.getElementsByTagName('tr');
+        const itemsPerPage = 2; // Adjust as needed
+        let currentPage = 0;
+
+        // Show the header row
+        rows[0].style.display = 'table-row';
+
+        function showPage(page) {
+            const startIndex = page * itemsPerPage + 1; // Start from index 1 to skip the header roww
+            const endIndex = Math.min(startIndex + itemsPerPage, rows.length);
+
+            for (let i = 1; i < rows.length; i++) { // Start from index 1 to skip the header row
+                if (i >= startIndex && i < endIndex) {
+                    rows[i].style.display = 'table-row';
+                } else {
+                    rows[i].style.display = 'none';
+                }
+            }
+
+            // Update the showing items text
+            const showingItemsText = document.getElementById('showingItemsText');
+            if (showingItemsText) {
+                const firstItemIndex = startIndex;
+                const lastItemIndex = Math.min(endIndex - 1, rows.length - 1); // Exclude header row
+                showingItemsText.textContent = `Showing item ${firstItemIndex} - ${lastItemIndex} from ${rows.length - 1} items`;
+            }
+
+            // Update active state of page buttons
+            updateActiveButtonState();
+        }
+
+        function navigateToPage(page) {
+            currentPage = page;
+            showPage(currentPage);
+        }
+
+        function setupPagination() {
+            const pageCount = Math.ceil((rows.length - 1) / itemsPerPage); // Exclude header row
+
+            // Create pagination container
+            const paginationContainer = document.createElement('div');
+            paginationContainer.className = 'pagination';
+
+            // First page button
+            const firstPageButton = document.createElement('button');
+            firstPageButton.textContent = '<<';
+            firstPageButton.addEventListener('click', function () {
+                navigateToPage(0);
+            });
+            paginationContainer.appendChild(firstPageButton);
+
+            // Previous page button
+            const prevPageButton = document.createElement('button');
+            prevPageButton.textContent = '<';
+            prevPageButton.addEventListener('click', function () {
+                navigateToPage(Math.max(0, currentPage - 1));
+            });
+            paginationContainer.appendChild(prevPageButton);
+
+            // Page number buttons
+            for (let i = 0; i < pageCount; i++) {
+                const button = document.createElement('button');
+                button.textContent = i + 1;
+                button.addEventListener('click', function () {
+                    navigateToPage(i);
+                });
+                paginationContainer.appendChild(button);
+            }
+
+            // Next page button
+            const nextPageButton = document.createElement('button');
+            nextPageButton.textContent = '>';
+            nextPageButton.addEventListener('click', function () {
+                navigateToPage(Math.min(pageCount - 1, currentPage + 1));
+            });
+            paginationContainer.appendChild(nextPageButton);
+
+            // Last page button
+            const lastPageButton = document.createElement('button');
+            lastPageButton.textContent = '>>';
+            lastPageButton.addEventListener('click', function () {
+                navigateToPage(pageCount - 1);
+            });
+            paginationContainer.appendChild(lastPageButton);
+
+            // Add pagination container after the table
+            logTable.insertAdjacentElement('afterend', paginationContainer);
+
+            // Create and append showing items text
+            const showingItemsText = document.createElement('div');
+            showingItemsText.id = 'showingItemsText';
+            showingItemsText.textContent = `Showing item 1 - ${Math.min(itemsPerPage, rows.length - 1)} from ${rows.length - 1} items`;
+            logTable.insertAdjacentElement('afterend', showingItemsText);
+
+            // Show the initial page
+            showPage(currentPage);
+        }
+
+        // Function to update active state of page buttons
+        function updateActiveButtonState() {
+            const pageButtons = document.querySelectorAll('.pagination button');
+            pageButtons.forEach((button, index) => {
+                if (index === currentPage + 2) { // Index + 2 as we have two additional buttons (<< and <)
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+        }
+
+        // Initialize pagination
+        setupPagination();
+    });
+
+    function openLoglogbook() {
+        const logbook = document.getElementById('loglogbook');
+        logbook.style.display = 'block';
+        // Additional logic to fetch and populate the table data can be added here
+    }
+
+    // Function to close the log logbook
+    function closeLoglogbook() {
+        const logbook = document.getElementById('loglogbook');
+        logbook.style.display = 'none';
+    }
+
+
+    function findEdgeFeeders(mainFeederName) {
+    const edgeFeedersSet = new Set();
+
+    // Find all instances of the main feeder and collect its outer points
+    const mainFeederPoints = new Set();
+    feeder_layer.getSource().forEachFeature(function(feature) {
+        const featureName = feature.get('LAYER');
+        if (featureName === mainFeederName) {
+            const featureGeometry = feature.getGeometry();
+            featureGeometry.getCoordinates().forEach(lineString => {
+                const lineStringLength = lineString.length;
+                mainFeederPoints.add(lineString[0].toString());
+                mainFeederPoints.add(lineString[lineStringLength - 1].toString());
+            });
+        }
+    });
+
+    // Iterate through all features and find intersecting edge feeders
+    feeder_layer.getSource().forEachFeature(function(feature) {
+        const featureName = feature.get('LAYER');
+        if (featureName !== mainFeederName) {
+            const featureGeometry = feature.getGeometry();
+            featureGeometry.getCoordinates().forEach(lineString => {
+                lineString.forEach(point => {
+                    if (mainFeederPoints.has(point.toString())) {
+                        edgeFeedersSet.add(featureName); // Add to the Set
+                    }
+                });
+            });
+        }
+    });
+
+    return edgeFeedersSet;
+}
+
+
+    // Load GeoJSON data for the grey map layer
+    const greyMapSource = new ol.source.TileJSON({
+        url: 'https://api.maptiler.com/maps/basic-v2-light/tiles.json?key=VTEyqAvEoi2G2xhpCGmi',
+        tileSize: 512,
+    });
+
+    // Create the grey map layer
+    const greyMapLayer = new ol.layer.Tile({
+        source: greyMapSource,
+        visible: false // Initially set to invisible
+    });
+
+    // Add the grey map layer to the map
+    map.addLayer(greyMapLayer);
+
+
+    // Create the first vector layer
+    const switches_layer = new ol.layer.Vector({
+        source: Switches_source,
+        style: switches_style
+    });
+
+    // Add the first vector layer to the mapp
+    map.addLayer(switches_layer);
+
+    // Load GeoJSON data for the second layer
+    const Feeders_source = new ol.source.Vector({
+        url: 'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Voedingen-stadsplan.geojson',
+        format: new ol.format.GeoJSON()
+    });
+
+
+    // Create the second vector layer without style
+    const feeder_layer = new ol.layer.Vector({
+        source: Feeders_source
+    });
+
+    // Add the second vector layer to the map
+    map.addLayer(feeder_layer);
+
+    // Define a mapping of feeder names to image URLs
+    const feederImageMap = {
+        'V037': 'https://github.com/XanderPeeters/Schakelboekje/blob/master/Afbeeldingen%20details/Detail%20stelplaats%20V037.png?raw=true',
+        'V314': 'https://github.com/XanderPeeters/Schakelboekje/blob/master/Afbeeldingen%20details/Detail%20V361V314.png?raw=true',
+        'V361' : 'https://github.com/XanderPeeters/Schakelboekje/blob/master/Afbeeldingen%20details/Detail%20V361.png?raw=true',
+        'V353' : 'https://github.com/XanderPeeters/Schakelboekje/blob/master/Afbeeldingen%20details/Detail%20V353.png?raw=true',
+        // Add more mappings as needed
+    };
+
+    // Fetch JSON data from the server
+    fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Kleuren.json')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch JSON file');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Define a map to store colors for feeders
+            const feederColors = new Map(data.map(entry => [entry.LAYER, entry.COLOR]));
+
+            // Modified style function to use assigned colors for feeders and prevent text overlap
+            const feeder_styling = function(feature, resolution) {
+                const layerName = feature.get('LAYER'); // Get the name of the feeder from the 'LAYER' property
+
+                // Get color for the current feeder from the map
+                const color = feederColors.get(layerName);
+
+                // If color is found, create style for the feature
+                if (color) {
+                    // Function to handle click event on layer name
+                    const handleClick = function() {
+                        const imageUrl = feederImageMap[layerName];
+                        if (imageUrl) {
+                            window.open(imageUrl, '_blank');
+                        } else {
+                            console.error('Image URL not found for feeder:', layerName);
+                        }
+                    };
+
+                    // Calculate font size based on zoom level
+                    const minFontSize = 10; // Adjust the minimum font size as needed
+                    const maxFontSize = 14; // Adjust the maximum font size as needed
+                    const zoom = map.getView().getZoom();
+                    const fontSize = Math.max(minFontSize, maxFontSize - (zoom - 10)); // Adjust the base zoom level as needed (10 in this example)
+
+                    // Style for the feature
+                    return new ol.style.Style({
+                        stroke: new ol.style.Stroke({
+                            color: color,
+                            width: 3
+                        }),
+                        text: new ol.style.Text({
+                            text: map.getView().getZoom() >= 15 ? layerName : '',  // Always show the label
+                            font: `bold ${fontSize}px Calibri,sans-serif`, // Adjust font size dynamically based on zoom level
+                            offsetY: -12,
+                            fill: new ol.style.Fill({ color: 'black' }),
+                            // Event listener for click on layer name
+                            onClick: handleClick,
+                            overflow: true, // Allow text to overflow the container if necessary
+                            placement: 'point', // Place the text at a point on the feature
+                            maxAngle: Math.PI / 6, // Limit the rotation of the text
+                            textAlign: 'center', // Center-align the text
+                            textBaseline: 'middle', // Align the text vertically at the center
+                            stroke: new ol.style.Stroke({ // Stroke style for the text
+                                color: '#fff', // White color for the stroke
+                                width: 3 // Stroke width
+                            })
+                        })
+                    });
+                } else {
+                    // If color is not found, handle as needed
+                    console.error('Color not found for layer:', layerName);
+                    // You can choose to assign a default color or handle the situation differently
+                    return null;
+                }
+            };
+
+            // Set style function for the vector layer
+            feeder_layer.setStyle(feeder_styling);
+        })
+        .catch(error => {
+            console.error('Error reading JSON file:', error);
+            // Handle error here
+        });
+
+    // Troubleshooting: Add an event listener to check for errors
+    feeder_layer.getSource().on('change', function(evt) {
+        if (feeder_layer.getSource().getState() === 'ready') {
+            console.log('Data loaded successfully.');
+        } else if (feeder_layer.getSource().getState() === 'error') {
+            console.error('Error loading data:', feeder_layer.getSource().getLoadingError());
+        }
+    });
+
+    // Function to handle layer visibility
+    function handleLayerVisibility(layer, checkboxId) {
+        const checkbox = document.getElementById(checkboxId);
+        checkbox.addEventListener('change', function() {
+            layer.setVisible(this.checked);
+        });
+    }
+
+        // Create a new select interaction
+    const selectInteraction = new ol.interaction.Select({
+        condition: ol.events.condition.click // Trigger selection on click
+    });
+
+    // Add the select interaction to the map
+    map.addInteraction(selectInteraction);
+
+    // Event listener for feature selection
+    selectInteraction.on('select', function(event) {
+        const selectedFeatures = event.target.getFeatures();
+        if (selectedFeatures.getLength() > 0) {
+            const selectedFeature = selectedFeatures.item(0);
+            const layerName = selectedFeature.get('LAYER');
+            const imageUrl = feederImageMap[layerName];
+            if (imageUrl) {
+                window.open(imageUrl, '_blank');
+            } else {
+                console.error('Image URL not found for feeder:', layerName);
+            }
+        }
+    });
+
+    const popupElement = document.getElementById('popup');
+    popupElement.addEventListener('click', function(event) {
+        if (event.target.id === 'exportButton') {
+            const files = [
+                'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/Voeding%20165.xlsm',
+                'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/Voorbeeld%20voeding%20101.xlsm',
+                'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/voeding%20152.xlsm',
+                'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/voeding%20332.xlsm',
+                'https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/voorbeelden%20schakelnota/voeding%2081.xlsm'
+            ];
+
+            const randomIndex = Math.floor(Math.random() * files.length);
+            const randomFileURL = files[randomIndex];
+
+            // Fetch the file content
+            fetch(randomFileURL)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch file');
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // Create a temporary anchor element to download the file
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = URL.createObjectURL(blob);
+                    downloadLink.download = `Schakelnota_${randomIndex}.xlsm`; // Generate a dynamic filename
+                    downloadLink.click();
+                })
+                .catch(error => {
+                    console.error('Error fetching file:', error);
+                    // Handle error here
+                });
+            const content = popupElement.innerHTML;
+            //exportToExcel(content);
+            // Get the drawn polygon from the drawn features layer if it exists
+            //const drawnPolygon = getDrawnPolygon();
+            //if (drawnPolygon) {
+            //  exportMapImagePolygon(drawnPolygon); // Pass the drawn polygon
+            // } else {
+                // If no drawn polygon exists, export the current map view as an image
+            // exportMapImage();
+            // }
+        }
+    });
+
+    //function to zoom to a specific location
+    function zoomToLocationOrLayer(feature) {
+        const extent = feature.getGeometry().getExtent();
+        map.getView().fit(extent, {duration: 1000, maxZoom: 18});
+
+        // Calculate the center of the extent
+        const centerX = (extent[0] + extent[2]) / 2;
+        const centerY = (extent[1] + extent[3]) / 2;
+        const centerCoordinates = [centerX, centerY];
+        return centerCoordinates;
+    }
+        
+
+    // Function to zoom to a specific location or layer
+    async function searchLayerFeatureOrAddress() {
+        const searchText = document.getElementById('searchInput').value;
+        if (!searchText) {
+            document.getElementById('errorMessage').textContent = 'Voeding, Schakelaar of adres niet gevonden';
+            return;
+        }
+        
+        const layers = [
+            { layer: feeder_layer, name: 'feeder_layer' },
+            { layer: switches_layer, name: 'switches_layer' }
+        ];
+
+        let found = false;
+        let wronginput = false;
+
+
+        for (const { layer, name } of layers) {
+            layer.getSource().forEachFeature(feature => {
+                if (feature.get('LAYER') === searchText) {
+                    zoomToLocationOrLayer(feature);
+                    const centerCoordinates = zoomToLocationOrLayer(feature);
+                    const currentLayer = name;
+                    placePin(centerCoordinates);
+                    displayPopup(centerCoordinates, feature, currentLayer);
+                    found = true;
+                    return;
+                } else {
+                    wronginput = true;
+                }
+            });
+        };
+
+        if (!found) {
+            geocodeAddress(searchText)
+        } 
+        if (!found && !wronginput) {
+            geocodeAddress(searchText)
+            //remove popup in this condition 
+            const popupElement = document.getElementById('popup');
+            popupElement.style.display = 'none';  
+            popupElement.style.display = 'none'; 
+        } else if (!found && wronginput) {
+            document.getElementById('errorMessage').textContent = ''; // Clear error message
+            const popupElement = document.getElementById('popup');     
+        } else {
+            document.getElementById('errorMessage').textContent = ''; // Clear error message
+            const popupElement = document.getElementById('popup');
+        }
+    }
+
+    // Function to display a message under the switchNumber element
+    function displayMessage(message, isSuccess) {
+        // Remove any existing message element
+        const existingMessage = document.querySelector('.message');
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+
+        // Create a new message element
+        const messageElement = document.createElement('div');
+        messageElement.textContent = message;
+        messageElement.classList.add('message');
+        
+        // Set the color based on isSuccess flag
+        if (isSuccess) {
+            messageElement.classList.add('success');
+        } else {
+            messageElement.classList.add('error');
+        }
+        
+        // Get the switchNumber element
+        const switchNumberElement = document.getElementById('switchNumber');
+        
+        // Insert the message element after the switchNumber element
+        switchNumberElement.parentNode.insertBefore(messageElement, switchNumberElement.nextSibling);
+    }
+
+   // Define global variables to store feeder colors and switch data
+let feederColors;
+let switchData;
+
+// Define a global variable to store the most recent colors assigned by switches
+const recentSwitchColors = {};
+
+// Function to update the state of a switch
+function updateSwitchState(switchNum, newState) {
+    console.log(`Updating switch ${switchNum} to state ${newState}`);
+    // Find the switch by its unique identifier (NUMMERSCHA)
+    const switches = Switches_source.getFeatures(); // Change switchesSource to Switches_source
+    const switchFeature = switches.find(switchFeature => switchFeature.get('NUMMERSCHA') === switchNum);
+
+    if (switchFeature) {
+        // Set the new state to the switch
+        switchFeature.set('State', newState);
+
+        // Find the switch data for the current switchNum
+        const switchInfo = switchData.find(info => info.switch_name === switchNum);
+
+        if (switchInfo) {
+            // Get the color of closest_section_1
+            const color = feederColors.get(switchInfo.closest_section_1);
+
+            if (color) {
+                // Update the color of closest_section_2 to match closest_section_1
+                const closestSection2 = switchInfo.closest_section_2;
+
+                // Find all features in the feeder layer that match closestSection2
+                const features = feeder_layer.getSource().getFeatures();
+                features.forEach(feature => {
+                    if (feature.get('LAYER') === closestSection2) {
+                        if (newState === 'open') {
+                            // Assign the new color to closest_section_2
+                            const newFeederColor = recentSwitchColors[switchInfo.closest_section_1] || color;
+                            feature.setStyle(new ol.style.Style({
+                                stroke: new ol.style.Stroke({
+                                    color: newFeederColor,
+                                    width: 3
+                                })
+                            }));
+
+                            // Update the neighboring feeder's color
+                            updateNeighboringFeederColor(closestSection2, newFeederColor);
+                        } else if (newState === 'closed') {
+                            // Revert closest_section_2 back to its original color from feederColors
+                            const originalColor = feederColors.get(closestSection2);
+                            feature.setStyle(new ol.style.Style({
+                                stroke: new ol.style.Stroke({
+                                    color: originalColor,
+                                    width: 3
+                                })
+                            }));
+                        }
+                    }
+                });
+                console.log('Feeder color updated successfully.');
+            } else {
+                console.error('Color not found for closestSection1:', switchInfo.closest_section_1);
+            }
+        } else {
+            // Display error message if switch data is not found
+            displayMessage('Switch data not found.', false);
+            console.error('Switch data not found.');
+        }
+
+        // Update the style of the switch based on the new state
+        switches_layer.setStyle(switches_style); // Assuming switches_layer is your layer
+
+        // Display success message
+        displayMessage('Switch state updated successfully.', true);
+
+        // Refresh the map to reflect the style changes
+        map.render();
+    } else {
+        // Display error message
+        displayMessage('Switch not found.', false);
+        console.error('Switch not found.');
+    }
+}
+
+
+// Function to update the neighboring feeder's color based on the updated feeder's color
+function updateNeighboringFeederColor(feederName, newColor) {
+    // Find the neighboring feeder based on the feederName
+    const neighboringFeeder = switchData.find(info => info.closest_section_1 === feederName || info.closest_section_2 === feederName);
+
+    if (neighboringFeeder) {
+        // Get the name of the neighboring feeder
+        const neighboringFeederName = neighboringFeeder.closest_section_1 === feederName ? neighboringFeeder.closest_section_2 : neighboringFeeder.closest_section_1;
+
+        // Find the feature in the feeder layer based on the name of the neighboring feeder
+        const features = feeder_layer.getSource().getFeatures();
+        const neighboringFeederFeature = features.find(feature => feature.get('LAYER') === neighboringFeederName);
+
+        if (neighboringFeederFeature) {
+            console.log('Neighboring feeder found:', neighboringFeederName);
+
+            // Use the most recent color assigned by the switch
+            const newFeederColor = recentSwitchColors[feederName] || newColor;
+            neighboringFeederFeature.setStyle(new ol.style.Style({
+                stroke: new ol.style.Stroke({
+                    color: newFeederColor,
+                    width: 3
+                })
+            }));
+            console.log('Neighboring feeder color updated successfully.');
+        } else {
+            console.error('Neighboring feeder feature not found:', neighboringFeederName);
+        }
+    } else {
+        console.error('Neighboring feeder not found for:', feederName);
+    }
+}
+
+// Fetch JSON data for feeder colors
+fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/Kleuren.json')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to fetch JSON file');
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Define a map to store colors for feeders
+        feederColors = new Map(data.map(entry => [entry.LAYER, entry.COLOR]));
+
+        console.log('Feeder colors loaded successfully.');
+    })
+    .catch(error => {
+        console.error('Error reading JSON file:', error);
+        // Handle error here
+    });
+
+// Fetch JSON data for switch data
+fetch('https://raw.githubusercontent.com/XanderPeeters/Schakelboekje/master/schakelaars_met_voedingen.json')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to fetch JSON file');
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Store switch data
+        switchData = data;
+
+        console.log('Switch data loaded successfully.');
+    })
+    .catch(error => {
+        console.error('Error reading JSON file:', error);
+        // Handle error here
+    });
+
+// Event listener to update the most recent colors assigned by switches
+Switches_source.on('change', function(event) {
+    if (event.target && event.target.getFeatures) {
+        const features = event.target.getFeatures();
+        features.forEach(feature => {
+            const switchNum = feature.get('NUMMERSCHA');
+            const newState = feature.get('State');
+            const switchInfo = switchData.find(info => info.switch_name === switchNum);
+            if (switchInfo) {
+                const color = feederColors.get(switchInfo.closest_section_1);
+                if (color) {
+                    const closestSection2 = switchInfo.closest_section_2;
+                    const newFeederColor = recentSwitchColors[switchInfo.closest_section_1] || color;
+                    recentSwitchColors[closestSection2] = newFeederColor;
+                }
+            }
+        });
+    }
+});
+
+    // Event listener for changing the state of a switch
+    document.getElementById('switchStateButton').addEventListener('click', function () {
+        const switchNum = document.getElementById('switchNumber').value;
+        const newState = document.getElementById('newState').value;
+
+        // Call the updateSwitchState function with the switch number and new state
+        updateSwitchState(switchNum, newState);
+    });
+
+
+
+
+    // Function to geocode an address and zoom to its location
+    function geocodeAddress(address) {
+        const fullAddress = address;
+        const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(fullAddress);
+        fetch(url)
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data && data.length > 0) {
+                    const location = data[0];
+                    const coordinates = [parseFloat(location.lon), parseFloat(location.lat)];
+                    map.getView().animate({ center: ol.proj.fromLonLat(coordinates), zoom: 18, duration: 1000 });
+                } else {
+                    alert('Voeding, schakelaar of adres niet gevonden!');
+                }
+            })
+            .catch(function(error) {
+                console.error('Error geocoding address:', error);
+            });
+    }
+
+    // Function to fetch address suggestions and populate the datalist
+    async function fetchAddressSuggestions(input) {
+        const antwerpBounds = '4.2355,51.1591,4.4728,51.2463'; // Antwerp bounding box
+        const url = `https://nominatim.openstreetmap.org/search?format=json&viewbox=${antwerpBounds}&bounded=1&limit=5&q=${encodeURIComponent(input)}`;
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            console.log(data); // Log the response
+            const suggestions = data.map(item => item.display_name);
+            return suggestions;
+        } catch (error) {
+            console.error('Error fetching address suggestions:', error);
+            return [];
+        }
+    }
+
+
+    document.addEventListener('DOMContentLoaded', function() {
+            // Your JavaScript code here
+            const input = document.getElementById('searchInput');
+            const list = document.getElementById('addressList');
+            const awesomplete = new Awesomplete(input, { list });
+
+            input.addEventListener('input', async function() {
+                const suggestions = await fetchAddressSuggestions(input.value);
+                awesomplete.list = suggestions;
+            });
+        });
+
+    function reloadPage() {
+        location.reload();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const metroSwitch = document.getElementById('metroSwitch');
+        const bovengrondsSwitch = document.getElementById('bovengrondsSwitch');
+
+        metroSwitch.addEventListener('change', function () {
+            updateSwitchesVisibility();
+        });
+
+        bovengrondsSwitch.addEventListener('change', function () {
+            updateSwitchesVisibility();
+        });
+
+        function updateSwitchesVisibility() {
+            const metroVisible = metroSwitch.checked;
+            const bovengrondsVisible = bovengrondsSwitch.checked;
+
+            // Loop through all features and update visibility based on checkbox state
+            Switches_source.getFeatures().forEach(function (feature) {
+                const metro = feature.get('metro?');
+                if ((metro === 'metro' && metroVisible) || (metro === 'boven' && bovengrondsVisible)) {
+                    feature.setStyle(null); // Show the feature
+                } else {
+                    feature.setStyle(new ol.style.Style({ // Hide the feature
+                        fill: new ol.style.Fill({
+                            color: 'rgba(255, 255, 255, 0)'
+                        }),
+                        stroke: new ol.style.Stroke({
+                            color: 'rgba(255, 255, 255, 0)'
+                        })
+                    }));
+                }
+            });
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const voedingenMetroSwitch = document.getElementById('voedingenMetro');
+        const voedingenBovengrondsSwitch = document.getElementById('voedingenBovengronds');
+
+        voedingenMetroSwitch.addEventListener('change', function () {
+            updateVoedingenVisibility();
+        });
+
+        voedingenBovengrondsSwitch.addEventListener('change', function () {
+            updateVoedingenVisibility();
+        });
+
+        function updateVoedingenVisibility() {
+            const voedingenMetroVisible = voedingenMetroSwitch.checked;
+            const voedingenBovengrondsVisible = voedingenBovengrondsSwitch.checked;
+
+            // Assuming you have a function Feeders_source.getFeatures() similar to the one used before
+            Feeders_source.getFeatures().forEach(function (feature) {
+                const metro = feature.get('metro?');
+                if ((metro === 'metro' && voedingenMetroVisible) || (metro === 'boven' && voedingenBovengrondsVisible)) {
+                    feature.setStyle(null); // Show the feature
+                } else {
+                    feature.setStyle(new ol.style.Style({ // Hide the feature
+                        fill: new ol.style.Fill({
+                            color: 'rgba(255, 255, 255, 0)'
+                        }),
+                        stroke: new ol.style.Stroke({
+                            color: 'rgba(255, 255, 255, 0)'
+                        })
+                    }));
+                }
+            });
+        }
+    });
+
+    // Handle visibility for OSM layer
+    handleLayerVisibility(map.getLayers().item(0), 'visible_map');
+
+    // Handle visibility for greylayer
+    handleLayerVisibility(greyMapLayer, 'visibleGrey');
+
+    map.on('click', function(evt) {
+        // Get the feature that was clicked
+        const feature = map.forEachFeatureAtPixel(evt.pixel, function(feature) {
+            return feature;
+        });
+
+        // Check if the clicked feature is a switch
+        if (feature && feature.get('NUMMERSCHA')) {
+            // Toggle the switch state
+            toggleSwitchState(feature.get('NUMMERSCHA'));
+        }
+    });
+
+    function toggleSwitchState(switchNum) {
+        // Find the switch by its unique identifier (NUMMERSCHA)
+        const switches = Switches_source.getFeatures(); // Change switchesSource to Switches_source
+        const switchFeature = switches.find(switchFeature => switchFeature.get('NUMMERSCHA') === switchNum);
+
+        if (switchFeature) {
+            // Get the current state of the switch
+            const currentState = switchFeature.get('State');
+
+            // Toggle the state
+            let newState;
+            if (currentState === 'open') {
+                newState = 'closed';
+            } else {
+                newState = 'open';
+            }
+
+            // Update the switch state
+            updateSwitchState(switchNum, newState);
+        } else {
+            // Display error message
+            displayMessage('Switch not found.', false);
+            console.error('Switch not found.');
+        }
+    }
+
+
+</script>
+</body>
+</html>
 
